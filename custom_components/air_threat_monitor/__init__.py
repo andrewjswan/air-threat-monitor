@@ -20,9 +20,9 @@ from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_ENTRY_TITLE,
-    DOMAIN as DOMAIN,
     STATIC_URL,
 )
+from .const import DOMAIN as DOMAIN
 from .coordinator import AirThreatCoordinator
 from .websocket import async_register_websocket_api
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 from custom_components.air_threat_monitor.geojson import resolve_area
 from custom_components.air_threat_monitor.models import AlertScope, GeoPoint
 
-
 COLLECTION = {
     "type": "FeatureCollection",
     "features": [

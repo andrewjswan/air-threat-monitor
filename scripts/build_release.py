@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
 import re
 import shutil
+from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
