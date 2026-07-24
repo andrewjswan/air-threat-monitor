@@ -176,6 +176,12 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
     assert 'if (isLinuxDesktopClient()) return "configured";' in card
     assert 'id="artwork-style"' not in card
     assert "SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000" in card
+    assert "DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000" in card
+    assert "function degradedSnapshotWithinGrace(snapshot)" in card
+    assert "const delayedData = degradedSnapshotWithinGrace(data);" in card
+    assert "data.available === false && !delayedData" in card
+    assert "dataDelayed" in card
+    assert 'class="cache-state delayed"' in card
     assert "_snapshotCacheKey()" in card
     assert "_restoreSnapshotCache()" in card
     assert "_storeSnapshotCache(snapshot)" in card

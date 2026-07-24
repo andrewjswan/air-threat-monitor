@@ -4,9 +4,10 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.3.0";
+const ASSET_VERSION = "0.3.1";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
+const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;
 const AUTOMATIC_TARGET_LIMIT = 5;
 const VALID_MODES = new Set(["live", "demo_safe", "demo_alert"]);
 const VALID_POSITION_MODES = new Set(["configured", "device", "tracker", "auto"]);
@@ -77,6 +78,7 @@ const TEXT = {
     noLocation: "Спочатку додайте інтеграцію Air Threat Monitor",
     loading: "Завантаження даних",
     cachedUpdating: "оновлення…",
+    dataDelayed: "дані затримуються",
     unavailable: "ДАНІ НЕДОСТУПНІ",
     unavailableDetail: "Не вдалося отримати актуальні дані. Перевірте інтеграцію та офіційні канали оповіщення.",
     cardError: "Помилка картки",
@@ -151,6 +153,7 @@ const TEXT = {
     noLocation: "Add the Air Threat Monitor integration first",
     loading: "Loading data",
     cachedUpdating: "updating…",
+    dataDelayed: "data delayed",
     unavailable: "DATA UNAVAILABLE",
     unavailableDetail: "Current data could not be retrieved. Check the integration and official warning channels.",
     cardError: "Card error",
@@ -225,6 +228,20 @@ function safeErrorText(error) {
     }
   }
   return "";
+}
+
+function degradedSnapshotWithinGrace(snapshot) {
+  if (
+    !snapshot
+    || snapshot.available !== false
+    || !Array.isArray(snapshot.targets)
+  ) {
+    return false;
+  }
+  const updatedAt = Date.parse(String(snapshot.updated_at || ""));
+  if (!Number.isFinite(updatedAt)) return false;
+  const age = Math.max(0, Date.now() - updatedAt);
+  return age <= DEGRADED_SNAPSHOT_GRACE_MS;
 }
 
 function assetUrl(filename) {
@@ -1706,7 +1723,8 @@ class AirThreatRadarCard extends HTMLElement {
       }
       return;
     }
-    if (data.available === false) {
+    const delayedData = degradedSnapshotWithinGrace(data);
+    if (data.available === false && !delayedData) {
       this.shadowRoot.innerHTML = `
         <style>
           :host { display:block; letter-spacing:0; }
@@ -1850,7 +1868,9 @@ class AirThreatRadarCard extends HTMLElement {
     const statusMarker = themeStyle && showRadar
       ? `<img class="status-marker" src="${escapeHtml(alertMarkerUrl)}" alt="">`
       : "";
-    const cacheState = this._snapshotFromCache
+    const cacheState = delayedData
+      ? `<b class="cache-state delayed">${escapeHtml(t.dataDelayed)}</b>`
+      : this._snapshotFromCache
       ? `<b class="cache-state">${escapeHtml(t.cachedUpdating)}</b>`
       : "";
     const entityIds = data.entity_ids || {};
@@ -1918,6 +1938,7 @@ class AirThreatRadarCard extends HTMLElement {
         .metric-unknown b { color:#c8cdd3; }
         .credit { font-size:8px; opacity:.58; white-space:nowrap; }
         .cache-state { margin-right:5px; color:#ffd166; font-size:8px; font-weight:800; opacity:1; }
+        .cache-state.delayed { text-transform:uppercase; }
         .source { color:inherit; text-decoration:none; }
         .message { min-height:100px; display:grid; place-items:center; padding:16px; text-align:center; }
         .more-info-zone { cursor:pointer; }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1
+
+- Keep the last successful radar snapshot visible for up to 60 seconds after a
+  transient provider update failure.
+- Mark the retained snapshot with a visible `data delayed` status instead of
+  immediately replacing the entire card with the unavailable-data screen.
+- Continue to show the full unavailable-data warning when no valid snapshot
+  exists or the last successful update is more than 60 seconds old.
+
 ## 0.3.0
 
 - First public release of Air Threat Monitor and the bundled Air Threat Radar
