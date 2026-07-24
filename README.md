@@ -1,10 +1,4 @@
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/serg-ill/air-threat-monitor/main/brand/logo.png"
-    alt="Air Threat Monitor"
-    width="720"
-  >
-</p>
+![Air Threat Monitor](brand/logo.png)
 
 # Air Threat Monitor for Home Assistant
 
@@ -17,13 +11,7 @@ direction, and a north-up radar card.
 > Always follow official air-alert signals and instructions from Ukrainian
 > authorities.
 
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/serg-ill/air-threat-monitor/main/docs/images/demo-alert-signal.png"
-    alt="Air Threat Radar demo alert with animated radar and target list"
-    width="469"
-  >
-</p>
+![Air Threat Radar demo alert with animated radar and target list](docs/images/demo-alert-signal.png)
 
 <p align="center"><em>Alert demonstration data. No live threat is shown.</em></p>
 

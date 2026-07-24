@@ -43,14 +43,10 @@ def test_hacs_release_metadata() -> None:
     assert (INTEGRATION / "brand" / "icon@2x.png").is_file()
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "![Air Threat Monitor](brand/logo.png)" in readme
     assert (
-        'src="https://raw.githubusercontent.com/serg-ill/'
-        'air-threat-monitor/main/brand/logo.png"'
-        in readme
-    )
-    assert (
-        'src="https://raw.githubusercontent.com/serg-ill/'
-        'air-threat-monitor/main/docs/images/demo-alert-signal.png"'
+        "![Air Threat Radar demo alert with animated radar and target list]"
+        "(docs/images/demo-alert-signal.png)"
         in readme
     )
     screenshots = (
