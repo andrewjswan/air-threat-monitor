@@ -11,6 +11,7 @@ from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AirThreatApiClient
@@ -19,7 +20,7 @@ from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_ENTRY_TITLE,
-    DOMAIN,
+    DOMAIN as DOMAIN,
     STATIC_URL,
 )
 from .coordinator import AirThreatCoordinator
@@ -30,6 +31,8 @@ PLATFORMS = (Platform.BINARY_SENSOR, Platform.SENSOR)
 _LOGGER = logging.getLogger(__name__)
 
 AirThreatConfigEntry = ConfigEntry[AirThreatCoordinator]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _COORDINATE_TITLE = re.compile(
     r"^\s*[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*,\s*"
