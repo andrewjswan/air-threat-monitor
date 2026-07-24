@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+- Fixed the project logo and alert demonstration image in the HACS repository
+  description by using HACS-compatible Markdown image links.
+- Added the updated alert demonstration screenshot to the card-style comparison
+  in the project documentation.
+
 ## 0.3.1
 
 - Keep the last successful radar snapshot visible for up to 60 seconds after a

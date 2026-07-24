@@ -11,10 +11,6 @@ direction, and a north-up radar card.
 > Always follow official air-alert signals and instructions from Ukrainian
 > authorities.
 
-![Air Threat Radar demo alert with animated radar and target list](docs/images/demo-alert-signal.png)
-
-<p align="center"><em>Alert demonstration data. No live threat is shown.</em></p>
-
 ## Features
 
 - Setup entirely through the Home Assistant interface.
@@ -45,9 +41,9 @@ direction, and a north-up radar card.
 
 ## Card styles
 
-| Signal colors | Theme-aware dark | Theme-aware light |
-|:---:|:---:|:---:|
-| ![Safe signal-color demo](docs/images/demo-safe-signal.png) | ![Safe dark-theme demo](docs/images/demo-safe-theme-dark.png) | ![Safe light-theme demo](docs/images/demo-safe-theme-light.png) |
+| Signal colors | Alert signal | Theme-aware dark | Theme-aware light |
+|:---:|:---:|:---:|:---:|
+| ![Safe signal-color demo](docs/images/demo-safe-signal.png) | ![Alert signal-color demo](docs/images/demo-alert-signal.png) | ![Safe dark-theme demo](docs/images/demo-safe-theme-dark.png) | ![Safe light-theme demo](docs/images/demo-safe-theme-light.png) |
 
 All screenshots use the built-in demonstration mode. Demo data remains local
 to the card, does not change Home Assistant entities, and cannot trigger
