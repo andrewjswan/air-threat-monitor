@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3
+
+- Added local Home Assistant brand logos alongside the bundled integration
+  icons, following the custom-integration brand image format introduced in
+  Home Assistant 2026.3.
+- Added release validation for all standard and high-DPI integration brand
+  images.
+
 ## 0.3.2
 
 - Fixed the project logo and alert demonstration image in the HACS repository

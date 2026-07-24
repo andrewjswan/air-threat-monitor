@@ -94,6 +94,8 @@ def _validate_repository() -> None:
         ROOT / "brand" / "icon.png",
         INTEGRATION / "brand" / "icon.png",
         INTEGRATION / "brand" / "icon@2x.png",
+        INTEGRATION / "brand" / "logo.png",
+        INTEGRATION / "brand" / "logo@2x.png",
         INTEGRATION / "manifest.json",
         INTEGRATION / "assets" / "air-threat-radar-card.js",
         ROOT / "docs" / "images" / "demo-safe-signal.png",

@@ -41,6 +41,8 @@ def test_hacs_release_metadata() -> None:
     assert (ROOT / "brand" / "icon.png").is_file()
     assert (INTEGRATION / "brand" / "icon.png").is_file()
     assert (INTEGRATION / "brand" / "icon@2x.png").is_file()
+    assert (INTEGRATION / "brand" / "logo.png").is_file()
+    assert (INTEGRATION / "brand" / "logo@2x.png").is_file()
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "![Air Threat Monitor](brand/logo.png)" in readme
