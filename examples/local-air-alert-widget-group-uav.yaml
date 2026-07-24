@@ -1,0 +1,1414 @@
+type: custom:button-card
+entity: binary_sensor.poltavskii_raion_air
+triggers_update:
+  - binary_sensor.poltavskii_raion_air
+  - input_text.last_alarm_change_time
+  - sensor.time
+  - sensor.neptun_nearest_threat
+show_name: false
+show_label: false
+show_icon: false
+show_entity_picture: false
+custom_fields:
+  line: |
+    [[[
+      const TABLET_FACING_DEG = 90;
+      const isAlarm = entity.state === 'on';
+      const statusText = isAlarm ? 'ТРИВОГА' : 'БЕЗПЕЧНО';
+
+      let lastChange =
+        states['input_text.last_alarm_change_time']?.state;
+
+      if (
+        !lastChange ||
+        lastChange === 'unknown' ||
+        lastChange === 'unavailable'
+      ) {
+        lastChange = entity.last_changed;
+      }
+
+      const d = new Date(lastChange);
+      const now = new Date();
+
+      d.setSeconds(0, 0);
+      now.setSeconds(0, 0);
+
+      const isToday =
+        d.toDateString() === now.toDateString();
+
+      const timeStr = d.toLocaleTimeString('uk-UA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+
+      const dateStr = d.toLocaleDateString('uk-UA', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+
+      const diffMin =
+        Math.floor(Math.max(0, now - d) / 60000);
+
+      const days = Math.floor(diffMin / 1440);
+      const hours = Math.floor((diffMin % 1440) / 60);
+      const minutes = diffMin % 60;
+
+      let durationText = '';
+
+      if (days > 0) {
+        durationText = `${days} дн ${hours} год`;
+      } else if (hours > 0) {
+        durationText = `${hours} год ${minutes} хв`;
+      } else {
+        durationText = `${minutes} хв`;
+      }
+
+      function screenArrow(deg) {
+        const arrows = [
+          '↑', '↗', '→', '↘',
+          '↓', '↙', '←', '↖'
+        ];
+
+        const normalized =
+          ((Number(deg) % 360) + 360) % 360;
+
+        return arrows[
+          Math.round(normalized / 45) % 8
+        ];
+      }
+
+      function shortType(value) {
+        const text = String(value || '').toLowerCase();
+
+        if (
+          text.includes('груп') &&
+          text.includes('бпла')
+        ) {
+          return value;
+        }
+
+        if (text.includes('fpv')) return 'FPV';
+        if (text.includes('розвід')) return 'Розвідник';
+        if (text.includes('каб')) return 'КАБ';
+        if (text.includes('баліст')) return 'Балістика';
+        if (text.includes('ракет')) return 'Ракета';
+        if (text.includes('літак')) return 'Літак';
+        if (text.includes('бпла')) return 'БпЛА';
+
+        return value || 'Ціль';
+      }
+
+      const fromText =
+        `з ${isToday ? timeStr : dateStr + ' ' + timeStr}`;
+
+      const durationLabel = isAlarm
+        ? `триває ${durationText}`
+        : `безпечно ${durationText}`;
+
+      const threat =
+        states['sensor.neptun_nearest_threat'];
+
+      const active =
+        threat?.attributes?.active === true ||
+        threat?.attributes?.active === 'true';
+
+      const km = Number(threat?.state);
+      const type = shortType(
+        threat?.attributes?.title ||
+        threat?.attributes?.type
+      );
+      const risk = threat?.attributes?.risk_level || 'far';
+
+      const bearing =
+        Number(threat?.attributes?.bearing_from_home);
+
+      const heading =
+        Number(threat?.attributes?.heading);
+
+      const directionDeg = Number.isFinite(heading)
+        ? (
+            heading -
+            TABLET_FACING_DEG +
+            360
+          ) % 360
+        : Number.isFinite(bearing)
+          ? (
+              bearing -
+              TABLET_FACING_DEG +
+              360
+            ) % 360
+          : 0;
+
+      const arrow = screenArrow(directionDeg);
+
+      const showThreat =
+        isAlarm &&
+        active &&
+        Number.isFinite(km) &&
+        km <= 100;
+
+      const threatBadge = showThreat
+        ? `
+          <div class="threat-badge threat-${risk}">
+            <span class="threat-dot"></span>
+            <span class="threat-type">${type}</span>
+            <span class="threat-arrow">${arrow}</span>
+            <b>≈${Math.round(km)} км</b>
+          </div>
+        `
+        : '';
+
+      return `
+        <div class="alarm-content">
+          <span class="alarm-title">
+            ${statusText}
+          </span>
+
+          <span class="alarm-from">
+            ${fromText}
+          </span>
+
+          <div class="alarm-pills">
+            <div class="duration-pill">
+              <span>${durationLabel}</span>
+            </div>
+
+            ${threatBadge}
+          </div>
+        </div>
+      `;
+    ]]]
+  visual: |
+    [[[
+      const TABLET_FACING_DEG = 90;
+      const ICON_CACHE = 'icons-20260718-12';
+
+      const isAlarm = entity.state === 'on';
+
+      const threat =
+        states['sensor.neptun_nearest_threat'];
+
+      const active =
+        threat?.attributes?.active === true ||
+        threat?.attributes?.active === 'true';
+
+      const km = Number(threat?.state);
+
+      let visibleTargets =
+        Array.isArray(threat?.attributes?.targets)
+          ? threat.attributes.targets.filter(target => {
+              const distance = Number(
+                target.distance_km ??
+                target.distance ??
+                target.distance_rounded
+              );
+
+              return (
+                target.status !== 'resolved' &&
+                Number.isFinite(distance) &&
+                distance <= 100
+              );
+            })
+          : [];
+
+      if (
+        !visibleTargets.length &&
+        active &&
+        Number.isFinite(km) &&
+        km <= 100
+      ) {
+        visibleTargets = [{
+          distance_km: km,
+          risk_level:
+            threat?.attributes?.risk_level || 'watch',
+          type:
+            threat?.attributes?.type || 'Ціль',
+          title:
+            threat?.attributes?.title || '',
+          heading:
+            threat?.attributes?.heading,
+          bearing_from_home:
+            threat?.attributes?.bearing_from_home,
+          is_approaching:
+            threat?.attributes?.is_approaching
+        }];
+      }
+
+      const showRadar =
+        isAlarm &&
+        active &&
+        visibleTargets.length > 0;
+
+      if (!showRadar) {
+        const img = isAlarm
+          ? '/local/danger31.png'
+          : '/local/safe31.png';
+
+        return `
+          <img
+            class="main-png"
+            src="${img}?v=${ICON_CACHE}"
+          >
+        `;
+      }
+
+      function iconUrl(target) {
+        const raw = String(
+          `${target.type || ''} ${target.title || ''}`
+        ).toLowerCase();
+
+        if (raw.includes('fpv')) {
+          return `/local/neptun-icons/fpv.png?v=${ICON_CACHE}`;
+        }
+
+        if (
+          raw.includes('каб') ||
+          raw.includes('kab') ||
+          raw.includes('авіабомб')
+        ) {
+          return `/local/neptun-icons/kab.png?v=${ICON_CACHE}`;
+        }
+
+        if (
+          raw.includes('баліст') ||
+          raw.includes('ballistic')
+        ) {
+          return `/local/neptun-icons/rocket.png?v=${ICON_CACHE}`;
+        }
+
+        if (
+          raw.includes('рак') ||
+          raw.includes('rocket') ||
+          raw.includes('missile')
+        ) {
+          return `/local/neptun-icons/rocket.png?v=${ICON_CACHE}`;
+        }
+
+        if (
+          raw.includes('розвід') ||
+          raw.includes('recon')
+        ) {
+          return `/local/neptun-icons/recon.png?v=${ICON_CACHE}`;
+        }
+
+        if (
+          raw.includes('літак') ||
+          raw.includes('jet') ||
+          raw.includes('aircraft') ||
+          raw.includes('авіаці')
+        ) {
+          return `/local/neptun-icons/jet.png?v=${ICON_CACHE}`;
+        }
+
+        return `/local/neptun-icons/shahed.png?v=${ICON_CACHE}`;
+      }
+
+      const targetHtml = visibleTargets
+        .slice(0, 8)
+        .map((target, index) => {
+          const distance = Number(
+            target.distance_km ??
+            target.distance ??
+            target.distance_rounded
+          );
+
+          const bearing =
+            Number(target.bearing_from_home);
+
+          const heading =
+            Number(target.heading);
+
+          const radius = Math.min(
+            41,
+            Math.max(
+              11,
+              (distance / 100) * 41
+            )
+          );
+
+          const screenDeg =
+            Number.isFinite(bearing)
+              ? (
+                  bearing -
+                  TABLET_FACING_DEG +
+                  360
+                ) % 360
+              : 0;
+
+          const screenRad =
+            screenDeg * Math.PI / 180;
+
+          const x =
+            50 + Math.sin(screenRad) * radius;
+
+          const y =
+            50 - Math.cos(screenRad) * radius;
+
+          const rotation =
+            Number.isFinite(heading)
+              ? (
+                  heading -
+                  TABLET_FACING_DEG +
+                  360
+                ) % 360
+              : 0;
+
+          const risk =
+            target.risk_level || 'watch';
+
+          const approaching =
+            target.is_approaching === true ||
+            target.is_approaching === 'true';
+
+          return `
+            <div
+              class="
+                radar-target
+                radar-target-${risk}
+                ${approaching
+                  ? 'radar-target-approach'
+                  : ''}
+              "
+              style="
+                left:${x}%;
+                top:${y}%;
+                z-index:${20 + index};
+              "
+            >
+              <div
+                class="radar-target-rotator"
+                style="
+                  transform:rotate(${rotation}deg);
+                "
+              >
+                <img src="${iconUrl(target)}">
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const risk =
+        threat?.attributes?.risk_level || 'watch';
+
+      return `
+        <div class="radar radar-${risk}">
+          <div class="radar-ring radar-r100"></div>
+          <div class="radar-ring radar-r60"></div>
+          <div class="radar-ring radar-r30"></div>
+
+          <div class="radar-cross radar-cross-v"></div>
+          <div class="radar-cross radar-cross-h"></div>
+
+          <div class="radar-home"></div>
+
+          ${targetHtml}
+
+          <div class="radar-dir radar-n">СХ</div>
+          <div class="radar-dir radar-e">ПД</div>
+          <div class="radar-dir radar-s">ЗХ</div>
+          <div class="radar-dir radar-w">ПН</div>
+        </div>
+      `;
+    ]]]
+  intel: |
+    [[[
+      const SCREEN_TOP_BEARING = 90;
+      const CACHE_VERSION = 'icons-20260718-12';
+
+      const threat =
+        states['sensor.neptun_nearest_threat'];
+
+      const icons = {
+        uav: {
+          name: 'БпЛА',
+          file: 'shahed.png',
+          width: 31,
+          height: 31
+        },
+        fpv: {
+          name: 'FPV',
+          file: 'fpv.png',
+          width: 32,
+          height: 29
+        },
+        recon: {
+          name: 'Розвідник',
+          file: 'recon.png',
+          width: 36,
+          height: 25
+        },
+        missile: {
+          name: 'Ракета',
+          file: 'rocket.png',
+          width: 17,
+          height: 35
+        },
+        kab: {
+          name: 'КАБ',
+          file: 'kab.png',
+          width: 18,
+          height: 34
+        },
+        aircraft: {
+          name: 'Літак',
+          file: 'jet.png',
+          width: 31,
+          height: 35
+        }
+      };
+
+      function targetText(target) {
+        return [
+          target?.type,
+          target?.title,
+          target?.name
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+      }
+
+      function iconDefinition(target) {
+        const text = targetText(target);
+
+        if (text.includes('fpv')) {
+          return icons.fpv;
+        }
+
+        if (
+          text.includes('recon') ||
+          text.includes('розвід')
+        ) {
+          return icons.recon;
+        }
+
+        if (
+          text.includes('kab') ||
+          text.includes('каб') ||
+          text.includes('авіабомб')
+        ) {
+          return icons.kab;
+        }
+
+        if (
+          text.includes('missile') ||
+          text.includes('rocket') ||
+          text.includes('ракета') ||
+          text.includes('баліст')
+        ) {
+          return icons.missile;
+        }
+
+        if (
+          text.includes('aircraft') ||
+          text.includes('jet') ||
+          text.includes('літак') ||
+          text.includes('авіаці')
+        ) {
+          return icons.aircraft;
+        }
+
+        return icons.uav;
+      }
+
+      function distanceOf(target) {
+        return Number(
+          target?.distance_km ??
+          target?.distance_rounded ??
+          target?.distance
+        );
+      }
+
+      function localityOf(target) {
+        return (
+          target?.locality ||
+          target?.city ||
+          target?.settlement ||
+          target?.district ||
+          target?.region ||
+          ''
+        );
+      }
+
+      function rotationOf(target) {
+        const heading = Number(target?.heading);
+
+        if (!Number.isFinite(heading)) {
+          return 0;
+        }
+
+        return (
+          heading -
+          SCREEN_TOP_BEARING +
+          360
+        ) % 360;
+      }
+
+      function renderTarget(target) {
+        const definition = iconDefinition(target);
+        const distance = distanceOf(target);
+        const locality = localityOf(target);
+        const rotation = rotationOf(target);
+
+        const providerTitle = String(
+          target?.title || ''
+        ).trim();
+
+        const isUavGroup =
+          definition === icons.uav &&
+          providerTitle.toLowerCase().includes('груп');
+
+        const name = isUavGroup
+          ? providerTitle
+          : definition.name;
+
+        const distanceText = Number.isFinite(distance)
+          ? `≈${Math.round(distance)} км`
+          : '—';
+
+        const localityHtml = locality
+          ? `
+            <span class="intel-separator">·</span>
+            <span class="intel-locality">${locality}</span>
+          `
+          : '';
+
+        const iconUrl =
+          `/local/neptun-icons/${definition.file}?v=${CACHE_VERSION}`;
+
+        return `
+          <div class="intel-target">
+            <div class="intel-icon-box">
+              <img
+                src="${iconUrl}"
+                alt="${name}"
+                style="
+                  width:${definition.width}px;
+                  height:${definition.height}px;
+                  transform:rotate(${rotation}deg);
+                "
+              >
+            </div>
+
+            <div class="intel-target-line">
+              <span class="intel-name">
+                ${name}
+              </span>
+
+              ${localityHtml}
+
+              <span class="intel-distance">
+                ${distanceText}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      function metric(value, label, className = '') {
+        const number = Number(value);
+
+        if (!Number.isFinite(number) || number <= 0) {
+          return '';
+        }
+
+        return `
+          <div class="intel-metric ${className}">
+            <b>${number}</b>
+            <span>${label}</span>
+          </div>
+        `;
+      }
+
+      let targets =
+        Array.isArray(threat?.attributes?.targets)
+          ? threat.attributes.targets
+          : [];
+
+      targets = targets.filter(target =>
+        target &&
+        target.status !== 'resolved'
+      );
+
+      const active =
+        threat?.attributes?.active === true ||
+        threat?.attributes?.active === 'true';
+
+      const km = Number(threat?.state);
+
+      if (targets.length === 0 && active) {
+        targets = [{
+          type: threat?.attributes?.type,
+          title: threat?.attributes?.title,
+          heading: threat?.attributes?.heading,
+          distance_km:
+            threat?.attributes?.distance_km ??
+            km,
+          locality: threat?.attributes?.locality,
+          district: threat?.attributes?.district,
+          region: threat?.attributes?.region
+        }];
+      }
+
+      targets.sort((first, second) => {
+        const firstDistance = distanceOf(first);
+        const secondDistance = distanceOf(second);
+
+        return (
+          (Number.isFinite(firstDistance)
+            ? firstDistance
+            : 99999) -
+          (Number.isFinite(secondDistance)
+            ? secondDistance
+            : 99999)
+        );
+      });
+
+      const analytics =
+        threat?.attributes?.analytics || {};
+
+      const metrics = [
+        metric(
+          analytics.total,
+          'цілей',
+          'metric-total'
+        ),
+        metric(
+          analytics.uav,
+          'БпЛА',
+          'metric-uav'
+        ),
+        metric(
+          analytics.fpv,
+          'FPV',
+          'metric-fpv'
+        ),
+        metric(
+          analytics.threats,
+          'загр.',
+          'metric-threat'
+        ),
+        metric(
+          analytics.missiles,
+          'ракет',
+          'metric-missile'
+        ),
+        metric(
+          analytics.kab,
+          'КАБ',
+          'metric-kab'
+        ),
+        metric(
+          analytics.recon,
+          'розв.',
+          'metric-recon'
+        ),
+        metric(
+          analytics.aircraft,
+          'літ.',
+          'metric-aircraft'
+        )
+      ].filter(Boolean);
+
+      const analyticsFont =
+        metrics.length >= 8 ? 8 :
+        metrics.length >= 6 ? 9 :
+        10;
+
+      const targetsHtml = targets.length
+        ? targets.map(renderTarget).join('')
+        : `
+          <div class="intel-empty">
+            Активних цілей немає
+          </div>
+        `;
+
+      const analyticsHtml = metrics.length
+        ? `
+          <div
+            class="intel-analytics"
+            style="
+              --analytics-font:${analyticsFont}px;
+            "
+          >
+            ${metrics.join('')}
+          </div>
+        `
+        : '';
+
+      return `
+        <div class="intel-content">
+          <div class="intel-targets">
+            ${targetsHtml}
+          </div>
+
+          ${analyticsHtml}
+        </div>
+      `;
+    ]]]
+styles:
+  card:
+    - min-height: 128px
+    - border-radius: 20px
+    - border: none
+    - overflow: hidden
+    - padding: 0
+    - position: relative
+    - box-shadow: none
+    - background: |
+        [[[
+          const isAlarm = entity.state === 'on';
+
+          const threat =
+            states['sensor.neptun_nearest_threat'];
+
+          const active =
+            threat?.attributes?.active === true ||
+            threat?.attributes?.active === 'true';
+
+          const km = Number(threat?.state);
+
+          const showRadar =
+            isAlarm &&
+            active &&
+            Number.isFinite(km) &&
+            km <= 100;
+
+          const risk =
+            threat?.attributes?.risk_level || 'far';
+
+          if (
+            showRadar &&
+            risk === 'critical'
+          ) {
+            return `
+              linear-gradient(
+                135deg,
+                #3f0303 0%,
+                #8b0000 44%,
+                #ff3b1f 100%
+              )
+            `;
+          }
+
+          return isAlarm
+            ? `
+              linear-gradient(
+                135deg,
+                #3f0303 0%,
+                #8b0000 50%,
+                #c1121f 100%
+              )
+            `
+            : `
+              linear-gradient(
+                135deg,
+                #1f6f2b 0%,
+                #358d32 55%,
+                #43a047 100%
+              )
+            `;
+        ]]]
+  grid:
+    - grid-template-areas: |
+        "line visual"
+        "intel intel"
+    - grid-template-columns: minmax(0, 1fr) 143px
+    - grid-template-rows: 128px auto
+    - align-items: center
+  custom_fields:
+    line:
+      - justify-self: stretch
+      - align-self: center
+      - padding-left: 25px
+      - z-index: 3
+      - min-width: 0
+      - max-width: 100%
+    visual:
+      - justify-self: end
+      - align-self: center
+      - width: 128px
+      - height: 102px
+      - margin-right: 15px
+      - z-index: 2
+      - overflow: visible
+    intel:
+      - justify-self: stretch
+      - align-self: stretch
+      - width: 100%
+      - min-width: 0
+      - z-index: 4
+extra_styles: |
+  .alarm-content {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 118px;
+    position: relative;
+    overflow: visible;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .alarm-title {
+    font-size: 26px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: white;
+    line-height: 1.05;
+    letter-spacing: 0.3px;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.28);
+  }
+
+  .alarm-from {
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    opacity: 0.94;
+    line-height: 1.15;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.22);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .alarm-pills {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .duration-pill,
+  .threat-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    color: white;
+    white-space: nowrap;
+  }
+
+  .duration-pill {
+    min-width: 0;
+    max-width: 100%;
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.16);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.16),
+      0 2px 6px rgba(0,0,0,0.16);
+    backdrop-filter: blur(3px);
+    overflow: hidden;
+  }
+
+  .duration-pill span {
+    font-size: 13px;
+    font-weight: 850;
+    color: white;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .threat-badge {
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 5px 9px;
+    background: rgba(0,0,0,0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 2px 8px rgba(0,0,0,0.18);
+    backdrop-filter: blur(3px);
+    font-size: 13px;
+    font-weight: 850;
+    line-height: 1;
+    overflow: hidden;
+  }
+
+  .threat-critical {
+    background: rgba(255,230,0,0.23);
+  }
+
+  .threat-warning {
+    background: rgba(255,145,0,0.23);
+  }
+
+  .threat-watch {
+    background: rgba(255,255,255,0.13);
+  }
+
+  .threat-type {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .threat-arrow {
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  .threat-badge b {
+    font-weight: 950;
+    flex: 0 0 auto;
+  }
+
+  .threat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 8px rgba(255,255,255,0.55);
+    flex: 0 0 auto;
+  }
+
+  .main-png {
+    width: 102px;
+    height: 102px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .radar {
+    width: 96px;
+    height: 96px;
+    margin: 3px 16px;
+    position: relative;
+    border-radius: 999px;
+    overflow: visible;
+    background:
+      radial-gradient(
+        circle at center,
+        rgba(255,255,255,0.18) 0 2px,
+        transparent 3px
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(22,30,42,0.54),
+        rgba(7,10,16,0.34) 56%,
+        rgba(2,4,8,0.44) 100%
+      );
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.14),
+      inset 0 0 16px rgba(80,160,255,0.07);
+  }
+
+  .radar::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 999px;
+    background:
+      conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(255,255,255,0) 250deg,
+        rgba(255,255,255,0.46) 315deg,
+        rgba(255,255,255,0) 360deg
+      );
+    opacity: 0.92;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.34));
+    animation: radarSweep 4.5s linear infinite;
+    z-index: 1;
+  }
+
+  .radar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255,255,255,0.10),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        transparent 52%,
+        rgba(0,0,0,0.20) 100%
+      );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .radar-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(180,215,255,0.24);
+    z-index: 3;
+  }
+
+  .radar-r100 {
+    width: 82px;
+    height: 82px;
+  }
+
+  .radar-r60 {
+    width: 54px;
+    height: 54px;
+  }
+
+  .radar-r30 {
+    width: 28px;
+    height: 28px;
+  }
+
+  .radar-cross {
+    position: absolute;
+    background: rgba(180,215,255,0.14);
+    z-index: 3;
+  }
+
+  .radar-cross-v {
+    left: 50%;
+    top: 8px;
+    width: 1px;
+    height: 80px;
+  }
+
+  .radar-cross-h {
+    left: 8px;
+    top: 50%;
+    width: 80px;
+    height: 1px;
+  }
+
+  .radar-home {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    background: white;
+    box-shadow: 0 0 8px rgba(255,255,255,0.70);
+    z-index: 6;
+  }
+
+  .radar-target {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    transition:
+      left 0.8s ease,
+      top 0.8s ease;
+  }
+
+  .radar-target-rotator {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    transform-origin: 50% 50%;
+    transition: transform 0.8s ease;
+  }
+
+  .radar-target img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    display: block;
+    transform-origin: 50% 50%;
+    filter:
+      drop-shadow(0 0 4px rgba(255,255,255,0.78))
+      drop-shadow(0 0 8px rgba(255,51,71,0.42));
+  }
+
+  .radar-target-critical img {
+    animation: targetPulse 1.15s ease-out infinite;
+  }
+
+  .radar-target-warning img {
+    filter:
+      drop-shadow(0 0 4px rgba(255,255,255,0.72))
+      drop-shadow(0 0 8px rgba(255,145,0,0.46));
+  }
+
+  .radar-target-approach img {
+    filter:
+      drop-shadow(0 0 5px rgba(255,255,255,0.85))
+      drop-shadow(0 0 10px rgba(255,51,71,0.50));
+  }
+
+  .radar-dir {
+    position: absolute;
+    font-size: 7px;
+    font-weight: 950;
+    color: rgba(220,235,255,0.72);
+    line-height: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    z-index: 8;
+  }
+
+  .radar-n {
+    left: 50%;
+    top: -8px;
+    transform: translateX(-50%);
+  }
+
+  .radar-e {
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .radar-s {
+    left: 50%;
+    bottom: -8px;
+    transform: translateX(-50%);
+  }
+
+  .radar-w {
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .intel-content {
+    width: 100%;
+    min-width: 0;
+    padding: 1px 15px 4px;
+    background: rgba(0,0,0,0.14);
+    border-top: 1px solid rgba(255,255,255,0.11);
+    box-sizing: border-box;
+  }
+
+  .intel-targets {
+    width: 100%;
+    max-height: 108px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .intel-target {
+    min-height: 36px;
+    height: 36px;
+    padding: 0 3px;
+    display: grid;
+    grid-template-columns: 36px minmax(0,1fr);
+    align-items: center;
+    gap: 4px;
+  }
+
+  .intel-target + .intel-target {
+    border-top: 1px solid rgba(255,255,255,0.09);
+  }
+
+  .intel-icon-box {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .intel-icon-box img {
+    display: block;
+    max-width: 30px;
+    max-height: 30px;
+    object-fit: contain;
+    transform-origin: 50% 50%;
+    filter:
+      drop-shadow(0 0 4px rgba(255,255,255,0.35))
+      drop-shadow(0 0 7px rgba(255,51,71,0.20));
+  }
+
+  .intel-target-line {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .intel-name {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.98);
+  }
+
+  .intel-locality {
+    min-width: 0;
+    flex: 0 1 auto;
+    font-size: 11px;
+    font-weight: 650;
+    color: rgba(255,255,255,0.72);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .intel-distance {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 13px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.94);
+    text-align: right;
+  }
+
+  .intel-separator {
+    flex: 0 0 auto;
+    color: rgba(255,255,255,0.34);
+  }
+
+  .intel-analytics {
+    width: 100%;
+    min-width: 0;
+    padding: 4px 2px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    border-top: 1px solid rgba(255,255,255,0.09);
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .intel-metric {
+    flex: 0 0 auto;
+    min-width: max-content;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 3px;
+    font-size: var(--analytics-font);
+    line-height: 1;
+    color: rgba(255,255,255,0.64);
+  }
+
+  .intel-metric b {
+    font-size: calc(var(--analytics-font) + 1px);
+    font-weight: 950;
+    color: rgba(255,255,255,0.96);
+  }
+
+  .metric-uav b,
+  .metric-fpv b,
+  .metric-recon b {
+    color: #a9e4ff;
+  }
+
+  .metric-threat b,
+  .metric-kab b {
+    color: #ffd27a;
+  }
+
+  .metric-missile b {
+    color: #ff8091;
+  }
+
+  .intel-empty {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    color: rgba(255,255,255,0.58);
+    font-size: 11px;
+  }
+
+  .intel-targets::-webkit-scrollbar,
+  .intel-analytics::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  @keyframes radarSweep {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes targetPulse {
+    0% {
+      transform: scale(0.92);
+    }
+
+    70% {
+      transform: scale(1.18);
+    }
+
+    100% {
+      transform: scale(0.92);
+    }
+  }
+
+   @media (max-width: 420px) {
+    .alarm-title {
+      font-size: 24px;
+    }
+
+    .alarm-from {
+      font-size: 15px;
+    }
+
+    .duration-pill span,
+    .threat-badge {
+      font-size: 12px;
+    }
+
+    .intel-content {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .intel-analytics {
+      gap: 4px;
+    }
+  }
+
+  .intel-content {
+    overflow: hidden !important;
+  }
+
+  .intel-targets {
+    width: calc(100% + 18px) !important;
+    max-height: 110px !important;
+    padding-right: 18px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    scrollbar-color: transparent transparent !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .intel-targets::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    opacity: 0 !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+  }
+
+  .intel-targets::-webkit-scrollbar-track,
+  .intel-targets::-webkit-scrollbar-thumb {
+    width: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }

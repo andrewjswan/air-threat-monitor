@@ -1,0 +1,62 @@
+name: Beta bug report
+description: Report a reproducible Air Threat Monitor beta problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include exact home coordinates, addresses, access tokens, or other private data. Air Threat Monitor diagnostics redact configured coordinates.
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant version
+      placeholder: 2026.7.0
+    validations:
+      required: true
+  - type: input
+    id: integration-version
+    attributes:
+      label: Air Threat Monitor version
+      placeholder: 0.1.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - HACS custom repository
+        - Manual ZIP
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics and logs
+      render: text
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed exact coordinates, addresses, tokens, and unrelated personal data.
+          required: true

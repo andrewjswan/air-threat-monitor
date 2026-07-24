@@ -1,0 +1,46 @@
+{
+  "title": "Air Threat Monitor",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Air Threat Monitor",
+        "description": "Enter the monitored location. Coordinates are processed locally and are not sent to the data provider.",
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      },
+      "reconfigure": {
+        "title": "Change monitored location",
+        "description": "Enter the new coordinates for local distance and alert calculations.",
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the data provider",
+      "location_not_supported": "The coordinates could not be matched to a supported area"
+    },
+    "abort": {
+      "already_configured": "This location is already configured",
+      "reconfigure_successful": "The monitored location was updated"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "air_alert": {
+        "name": "Air alert"
+      }
+    },
+    "sensor": {
+      "nearest_threat": {
+        "name": "Nearest threat"
+      },
+      "active_threats": {
+        "name": "Reported targets"
+      }
+    }
+  }
+}

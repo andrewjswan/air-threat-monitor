@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify release tag
+        run: |
+          VERSION=$(python -c 'import json; print(json.load(open("custom_components/air_threat_monitor/manifest.json"))["version"])')
+          test "${GITHUB_REF_NAME}" = "v${VERSION}"
+      - run: python scripts/build_release.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            dist/air-threat-monitor.zip
+            dist/air-threat-monitor-*-manual.zip
+            dist/SHA256SUMS.txt
