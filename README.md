@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="brand/logo.png"
+    src="https://raw.githubusercontent.com/serg-ill/air-threat-monitor/main/brand/logo.png"
     alt="Air Threat Monitor"
     width="720"
   >
@@ -19,7 +19,7 @@ direction, and a north-up radar card.
 
 <p align="center">
   <img
-    src="docs/images/demo-alert-signal.png"
+    src="https://raw.githubusercontent.com/serg-ill/air-threat-monitor/main/docs/images/demo-alert-signal.png"
     alt="Air Threat Radar demo alert with animated radar and target list"
     width="469"
   >
