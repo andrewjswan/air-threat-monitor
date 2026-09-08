@@ -4,7 +4,7 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.3.3";
+const ASSET_VERSION = "0.3.5";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;
@@ -34,6 +34,81 @@ registerCardMetadata();
 
 const TEXT = {
   uk: {
+    location: "Локація",
+    dataMode: "Дані картки",
+    liveData: "Реальні дані",
+    demoSafe: "Демо: безпечно",
+    demoAlert: "Демо: тривога",
+    demo: "ДЕМО",
+    radius: "Радіус радара",
+    targets: "Цілей у списку",
+    automaticTargets: "Автоматично (рекомендовано)",
+    automaticTargetsHint: "До 5 цілей у радіусі. Якщо поруч немає — одна найближча.",
+    showList: "Показувати список цілей",
+    cardStyle: "Стиль картки",
+    signalStyle: "Сигнальні кольори",
+    themeStyle: "За темою Home Assistant",
+    positionSource: "Позиція для розрахунків",
+    configuredPosition: "Фіксована локація",
+    currentDevicePosition: "Живий GPS цього пристрою",
+    trackerPosition: "Персона або трекер Home Assistant",
+    automaticPosition: "Автоматично для цього пристрою",
+    fixedLocations: "Фіксовані локації",
+    trackerEntity: "Персона або трекер",
+    orientation: "Орієнтація радара",
+    northUp: "Північ угорі",
+    deviceCompass: "За компасом цього пристрою",
+    automaticOrientation: "Автоматично",
+    enableCompass: "Увімкнути компас",
+    compassWaiting: "Очікування компаса",
+    compassUnavailable: "Компас недоступний",
+    compassDenied: "Доступ до компаса заборонено",
+    trackerUnavailable: "Координати трекера недоступні",
+    deviceLocationWaiting: "Визначаю геопозицію…",
+    deviceLocationUnavailable: "Геолокація цього пристрою недоступна",
+    deviceLocationDenied: "Доступ до геолокації заборонено",
+    deviceLocationTimeout: "Не вдалося визначити геопозицію вчасно",
+    deviceLocationPositionUnavailable: "Пристрій не зміг визначити геопозицію",
+    deviceLocationFallbackUnavailable: "GPS і геопозиція вашої персони недоступні",
+    automaticLocationFallback: "Не вдалося визначити вашу позицію. Використати фіксовану локацію «{location}»?",
+    useFixedLocation: "Використати фіксовану",
+    retryGps: "Повторити GPS",
+    enableLocation: "Увімкнути геолокацію",
+    dynamicLocationUnsupported: "Поточна позиція поза підтримуваною територією",
+    noLocation: "Спочатку додайте інтеграцію Air Threat Monitor",
+    loading: "Завантаження даних",
+    cachedUpdating: "оновлення…",
+    dataDelayed: "дані затримуються",
+    unavailable: "ДАНІ НЕДОСТУПНІ",
+    unavailableDetail: "Не вдалося отримати актуальні дані. Перевірте інтеграцію та офіційні канали оповіщення.",
+    cardError: "Помилка картки",
+    safe: "БЕЗПЕЧНО",
+    alert: "ТРИВОГА",
+    noTargets: "Цілей поруч немає",
+    noActiveTargets: "Активних цілей немає",
+    targetsLabel: "цілей",
+    since: "з",
+    alertDuration: "триває",
+    safeDuration: "безпечно",
+    stale: "застаріла",
+    unknownDirection: "курс невідомий",
+    categories: {
+      uav: "БпЛА", fpv: "FPV-дрон", recon: "Розвідник",
+      missile: "Ракета", ballistic: "Балістика", kab: "КАБ",
+      aircraft: "Літак", unknown: "Ціль",
+    },
+    categoryCounts: {
+      uav: "БпЛА", fpv: "FPV", recon: "розв.", missile: "ракет",
+      ballistic: "баліст.", kab: "КАБ", aircraft: "літаків", unknown: "інших",
+    },
+    informational: "Неофіційні дані",
+    north: "Пн",
+    east: "Сх",
+    south: "Пд",
+    west: "Зх",
+    distanceUnit: "км",
+  },
+  ru: {
     location: "Локація",
     dataMode: "Дані картки",
     liveData: "Реальні дані",
@@ -186,8 +261,8 @@ const TEXT = {
 };
 
 function language(hass) {
-  const value = hass && hass.language ? String(hass.language) : "";
-  return value.toLowerCase().startsWith("uk") ? "uk" : "en";
+  const value = hass && hass.language ? String(hass.language) : "en";
+  return value.toLowerCase().startsWith("uk") ? "uk" : value.toLowerCase();
 }
 
 function valueOr(value, fallback) {
@@ -543,7 +618,7 @@ class AirThreatRadarCardEditor extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block}
-          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:20px;background:#3b4148;color:white}
+          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:0px;background:#3b4148;color:white}
           strong,span{display:block}
           span{margin-top:7px;font-size:11px;line-height:1.3;opacity:.78;overflow-wrap:anywhere}
         </style>
@@ -1636,7 +1711,7 @@ class AirThreatRadarCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block}
-          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:20px;background:#3b4148;color:white}
+          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:0px;background:#3b4148;color:white}
           strong,span{display:block}
           span{margin-top:7px;font-size:11px;line-height:1.3;opacity:.78;overflow-wrap:anywhere}
         </style>
@@ -1692,7 +1767,7 @@ class AirThreatRadarCard extends HTMLElement {
       const automaticActions = automaticFallback
         ? `<div class="actions"><button id="location-fixed" type="button">${escapeHtml(t.useFixedLocation)}</button><button id="location-retry" type="button">${escapeHtml(t.retryGps)}</button></div>`
         : retry;
-      this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{overflow:hidden;border-radius:20px}.message{min-height:100px;display:grid;place-items:center;padding:16px;text-align:center}.message>div{display:grid;justify-items:center;gap:10px;max-width:440px}.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.message button{min-height:36px;padding:0 13px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.12);color:inherit;font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}</style><ha-card><div class="message"><div><span>${escapeHtml(message)}</span>${automaticActions}</div></div></ha-card>`;
+      this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{overflow:hidden;border-radius:0px}.message{min-height:100px;display:grid;place-items:center;padding:16px;text-align:center}.message>div{display:grid;justify-items:center;gap:10px;max-width:440px}.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.message button{min-height:36px;padding:0 13px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.12);color:inherit;font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}</style><ha-card><div class="message"><div><span>${escapeHtml(message)}</span>${automaticActions}</div></div></ha-card>`;
       const fixedButton = this.shadowRoot.querySelector("#location-fixed");
       if (fixedButton) {
         fixedButton.addEventListener("click", (event) => {
@@ -1728,7 +1803,7 @@ class AirThreatRadarCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host { display:block; letter-spacing:0; }
-          ha-card { overflow:hidden; color:white; background:#3b4148; border-radius:20px; border:0; }
+          ha-card { overflow:hidden; color:white; background:#3b4148; border-radius:0px; border:0; }
           .unavailable { min-height:116px; padding:18px; display:grid; align-content:center; gap:8px; }
           .unavailable strong { font-size:20px; line-height:1; }
           .unavailable span { max-width:520px; font-size:12px; line-height:1.35; opacity:.78; }
@@ -1878,7 +1953,7 @@ class AirThreatRadarCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; letter-spacing:0; }
-        ha-card { position:relative; overflow:hidden; color:${cardColor}; background:${cardBackground}; border-radius:20px; border:${themeStyle ? `1px solid ${dividerColor}` : "0"}; }
+        ha-card { position:relative; overflow:hidden; color:${cardColor}; background:${cardBackground}; border-radius:0px; border:${themeStyle ? `1px solid ${dividerColor}` : "0"}; }
         .demo-badge { position:absolute; z-index:5; top:8px; right:8px; padding:4px 7px; border-radius:5px; background:#ffd60a; color:#171717; font-size:9px; font-weight:950; box-shadow:0 2px 8px rgba(0,0,0,.3); }
         .top { min-height:132px; padding:14px 16px; display:grid; grid-template-columns:minmax(0,1fr) 126px; gap:10px; align-items:center; }
         h2 { margin:0; font-size:28px; line-height:1; letter-spacing:0; color:${cardColor}; text-shadow:${themeStyle ? "none" : "0 2px 5px rgba(0,0,0,.28)"}; }
