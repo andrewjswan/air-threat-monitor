@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN = "air_threat_monitor"
-VERSION: Final = "0.3.3"
+VERSION: Final = "0.3.5"
 DEFAULT_ENTRY_TITLE: Final = "Air Threat Monitor"
 PROJECT_URL: Final = "https://github.com/serg-ill/air-threat-monitor"
 CONFIG_ENTRY_VERSION: Final = 2
@@ -40,3 +40,5 @@ DEFAULT_SCREEN_TOP_BEARING = 0.0
 DEFAULT_RADII_KM = (20.0, 50.0, 100.0)
 REST_MIN_INTERVAL_SECONDS = 5
 DEFAULT_UPDATE_INTERVAL = timedelta(seconds=10)
+
+SERVICE_GET_TARGETS = "get_targets"
