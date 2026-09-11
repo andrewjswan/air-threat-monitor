@@ -50,6 +50,9 @@ async def async_get_config_entry_diagnostics(
             "alert_scope": (
                 data.local_alert.scope.value if data.local_alert else None
             ),
+            "alert_level": (
+                data.local_alert.level.value if data.local_alert else None
+            ),
             "target_count": len(data.threats),
             "stale_target_count": sum(
                 item.threat.status == "stale" for item in data.threats

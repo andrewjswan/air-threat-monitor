@@ -83,12 +83,19 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
     assert "Object.assign(existing, registration)" in card
     assert 'data_mode: "live"' in card
     assert 'mode === "demo_alert"' in card
+    assert 'mode === "demo_warning"' in card
+    assert 'alert_level: warning ? "yellow"' in card
+    assert 'warning: "ЖОВТИЙ РІВЕНЬ"' in card
+    assert "#ffd24a" in card
+    assert 'warning\n      ? "#17130a"' in card
+    assert ".warning-image" in card
     assert "Unofficial data" in card
     assert "preview: false" in card
     assert "DATA UNAVAILABLE" in card
     assert "window.clearInterval(this._timer)" in card
     assert card.startswith('(() => {\n"use strict";')
     assert "status_since" in card
+    assert "alert_level" in card
     assert "const AUTOMATIC_TARGET_LIMIT = 5;" in card
     assert "function selectVisibleTargets(" in card
     assert 'max_targets: "auto"' in card
@@ -157,10 +164,10 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
     assert 'this._config.card_style === "theme"' in card
     assert "var(--ha-card-background" in card
     assert "var(--primary-text-color" in card
-    assert 'class="status-marker"' in card
+    assert 'class="status-marker${warning ? " warning-image" : ""}"' in card
     assert "this._hass.themes.darkMode === false" in card
     assert "item.image_light_url" in card
-    assert 'filter:${lightTheme ? "none"' in card
+    assert 'filter:${warning || lightTheme ? "none"' in card
     assert "rgba(255,255,255,.075)" in card
     assert "min-height:28px" in card
     assert "За темою Home Assistant" in card
@@ -192,7 +199,11 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
     assert "cachedUpdating" in card
     assert "safeErrorText(error)" in card
     assert 'const alertMarkerUrl = assetUrl("danger.png");' in card
-    assert 'class="status-marker" src="${escapeHtml(alertMarkerUrl)}"' in card
+    assert (
+        'class="status-marker${warning ? " warning-image" : ""}" '
+        'src="${escapeHtml(alertMarkerUrl)}"'
+        in card
+    )
     assert 'return isMobileClient() ? "device" : "configured";' in card
     assert 'id="position-source"' in card
     assert 'id="position-mode"' not in card

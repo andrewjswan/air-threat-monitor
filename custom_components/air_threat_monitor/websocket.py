@@ -284,6 +284,8 @@ def _snapshot(
         "available": coordinator.last_update_success,
         "alert_active": selected_alert is not None,
         "alert_since": selected_alert.since if selected_alert else None,
+        "alert_level": selected_alert.level.value if selected_alert else None,
+        "alert_reasons": list(selected_alert.reasons) if selected_alert else [],
         "status_since": status_since,
         "area": (
             selected_alert.name

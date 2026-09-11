@@ -41,7 +41,14 @@ class AirAlertBinarySensor(AirThreatEntity, BinarySensorEntity):
     def icon(self) -> str:
         """Return a state-aware icon."""
 
-        return "mdi:shield-alert" if self.is_on else "mdi:shield-check"
+        alert = self.coordinator.data.local_alert
+        if alert is None:
+            return "mdi:shield-check"
+        return (
+            "mdi:shield-alert-outline"
+            if alert.level.value == "yellow"
+            else "mdi:shield-alert"
+        )
 
     @property
     def entity_picture(self) -> str:
@@ -73,6 +80,8 @@ class AirAlertBinarySensor(AirThreatEntity, BinarySensorEntity):
                 else None
             ),
             "alert_since": alert.since if alert else None,
+            "alert_level": alert.level.value if alert else None,
+            "alert_reasons": list(alert.reasons) if alert else [],
             "status_since": (
                 data.status_since.isoformat() if data.status_since else None
             ),

@@ -12,6 +12,7 @@ class AlertStatusState:
 
     active: bool
     since: datetime
+    level: str | None = None
 
 
 def parse_datetime(value: str | None) -> datetime | None:
@@ -34,14 +35,28 @@ def update_alert_status(
     active: bool,
     provider_since: str | None,
     now: datetime,
+    alert_level: str | None = None,
 ) -> tuple[AlertStatusState, bool]:
     """Return the current state and whether it needs to be persisted."""
 
     provider_time = parse_datetime(provider_since) if active else None
-    if previous is None or previous.active != active:
-        return AlertStatusState(active=active, since=provider_time or now), True
+    level = alert_level if active else None
+    if (
+        previous is None
+        or previous.active != active
+        or previous.level != level
+    ):
+        return AlertStatusState(
+            active=active,
+            since=provider_time or now,
+            level=level,
+        ), True
 
     if active and provider_time is not None and provider_time != previous.since:
-        return AlertStatusState(active=True, since=provider_time), True
+        return AlertStatusState(
+            active=True,
+            since=provider_time,
+            level=level,
+        ), True
 
     return previous, False

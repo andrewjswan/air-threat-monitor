@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+- Added support for NEPTUN's `yellow` warning level alongside red air alerts.
+- Preserve the provider's alert level and reasons in the air-alert entity,
+  card snapshot, and privacy-safe diagnostics.
+- Added a distinct amber signal-card state and yellow warning artwork treatment.
+- Added a yellow-level demonstration mode to the graphical card editor.
+- Track yellow and red periods independently so their displayed duration resets
+  when the provider changes level.
+- Prefer any matching red alert over a narrower yellow warning to avoid
+  understating the current local status.
+
 ## 0.3.3
 
 - Added local Home Assistant brand logos alongside the bundled integration
