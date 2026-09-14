@@ -4,12 +4,12 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.3.5";
+const ASSET_VERSION = "0.4.0";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;
 const AUTOMATIC_TARGET_LIMIT = 5;
-const VALID_MODES = new Set(["live", "demo_safe", "demo_alert"]);
+const VALID_MODES = new Set(["live", "demo_safe", "demo_warning", "demo_alert"]);
 const VALID_POSITION_MODES = new Set(["configured", "device", "tracker", "auto"]);
 const VALID_ORIENTATION_MODES = new Set(["north_up", "device_compass", "auto"]);
 const VALID_CARD_STYLES = new Set(["signal", "theme"]);
@@ -38,6 +38,7 @@ const TEXT = {
     dataMode: "Дані картки",
     liveData: "Реальні дані",
     demoSafe: "Демо: безпечно",
+    demoWarning: "Демо: жовтий рівень",
     demoAlert: "Демо: тривога",
     demo: "ДЕМО",
     radius: "Радіус радара",
@@ -83,12 +84,14 @@ const TEXT = {
     unavailableDetail: "Не вдалося отримати актуальні дані. Перевірте інтеграцію та офіційні канали оповіщення.",
     cardError: "Помилка картки",
     safe: "БЕЗПЕЧНО",
+    warning: "ЖОВТИЙ РІВЕНЬ",
     alert: "ТРИВОГА",
     noTargets: "Цілей поруч немає",
     noActiveTargets: "Активних цілей немає",
     targetsLabel: "цілей",
     since: "з",
     alertDuration: "триває",
+    warningDuration: "триває",
     safeDuration: "безпечно",
     stale: "застаріла",
     unknownDirection: "курс невідомий",
@@ -113,6 +116,7 @@ const TEXT = {
     dataMode: "Дані картки",
     liveData: "Реальні дані",
     demoSafe: "Демо: безпечно",
+    demoWarning: "Демо: жовтий рівень",
     demoAlert: "Демо: тривога",
     demo: "ДЕМО",
     radius: "Радіус радара",
@@ -158,12 +162,14 @@ const TEXT = {
     unavailableDetail: "Не вдалося отримати актуальні дані. Перевірте інтеграцію та офіційні канали оповіщення.",
     cardError: "Помилка картки",
     safe: "БЕЗПЕЧНО",
+    warning: "ЖОВТИЙ РІВЕНЬ",
     alert: "ТРИВОГА",
     noTargets: "Цілей поруч немає",
     noActiveTargets: "Активних цілей немає",
     targetsLabel: "цілей",
     since: "з",
     alertDuration: "триває",
+    warningDuration: "триває",
     safeDuration: "безпечно",
     stale: "застаріла",
     unknownDirection: "курс невідомий",
@@ -188,6 +194,7 @@ const TEXT = {
     dataMode: "Card data",
     liveData: "Live data",
     demoSafe: "Demo: safe",
+    demoWarning: "Demo: yellow level",
     demoAlert: "Demo: alert",
     demo: "DEMO",
     radius: "Radar radius",
@@ -233,12 +240,14 @@ const TEXT = {
     unavailableDetail: "Current data could not be retrieved. Check the integration and official warning channels.",
     cardError: "Card error",
     safe: "SAFE",
+    warning: "YELLOW LEVEL",
     alert: "AIR ALERT",
     noTargets: "No nearby targets",
     noActiveTargets: "No active targets",
     targetsLabel: "targets",
     since: "since",
     alertDuration: "active",
+    warningDuration: "active",
     safeDuration: "safe",
     stale: "stale",
     unknownDirection: "heading unknown",
@@ -676,6 +685,7 @@ class AirThreatRadarCardEditor extends HTMLElement {
           <label>${t.dataMode}<select id="data-mode">
             <option value="live" ${dataMode === "live" ? "selected" : ""}>${t.liveData}</option>
             <option value="demo_safe" ${dataMode === "demo_safe" ? "selected" : ""}>${t.demoSafe}</option>
+            <option value="demo_warning" ${dataMode === "demo_warning" ? "selected" : ""}>${t.demoWarning}</option>
             <option value="demo_alert" ${dataMode === "demo_alert" ? "selected" : ""}>${t.demoAlert}</option>
           </select></label>
           ${dataMode === "live" ? (this._locations.length ? `
@@ -1219,6 +1229,7 @@ class AirThreatRadarCard extends HTMLElement {
               valueOr(data.position_source, ""),
               valueOr(data.area, ""),
               valueOr(data.oblast, ""),
+              valueOr(data.alert_level, ""),
             ].join("|"),
             active: Boolean(data.alert_active),
             since: directText,
@@ -1233,6 +1244,7 @@ class AirThreatRadarCard extends HTMLElement {
       valueOr(data.position_source, ""),
       valueOr(data.area, ""),
       valueOr(data.oblast, ""),
+      valueOr(data.alert_level, ""),
     ].join("|");
     const active = Boolean(data.alert_active);
     const previous = this._dynamicStatusState;
@@ -1526,8 +1538,10 @@ class AirThreatRadarCard extends HTMLElement {
 
   _demoSnapshot(mode) {
     const alert = mode === "demo_alert";
-    const statusSince = new Date(Date.now() - (alert ? 17 : 228) * 60000).toISOString();
-    const targets = alert
+    const warning = mode === "demo_warning";
+    const active = alert || warning;
+    const statusSince = new Date(Date.now() - (active ? 17 : 228) * 60000).toISOString();
+    const targets = active
       ? [
           {
             id: "demo-uav",
@@ -1608,13 +1622,19 @@ class AirThreatRadarCard extends HTMLElement {
       : [];
     return {
       demo: true,
-      alert_active: alert,
-      area: alert ? "Демонстраційна тривога" : "Демонстраційний режим",
+      alert_active: active,
+      alert_level: warning ? "yellow" : alert ? "red" : null,
+      alert_reasons: warning ? ["Дронова загроза (жовтий рівень)"] : [],
+      area: warning
+        ? "Демонстраційне попередження"
+        : alert
+        ? "Демонстраційна тривога"
+        : "Демонстраційний режим",
       oblast: "",
       available: true,
       status_since: statusSince,
-      alert_since: alert ? statusSince : null,
-      status_image_url: assetUrl(alert ? "danger.png" : "safe.png"),
+      alert_since: active ? statusSince : null,
+      status_image_url: assetUrl(active ? "danger.png" : "safe.png"),
       targets,
       analytics: {
         total: targets.length,
@@ -1831,13 +1851,17 @@ class AirThreatRadarCard extends HTMLElement {
       valueOr(this._config.max_targets, "auto"),
     );
     const showRadar = data.alert_active && nearby.length > 0;
+    const alertLevel = data.alert_active
+      ? data.alert_level === "yellow" ? "yellow" : "red"
+      : "safe";
+    const warning = alertLevel === "yellow";
     const rows = visible
       .map((item) => {
         const title = targetDisplayTitle(item, t);
         const place = item.locality || item.region;
         const stale = item.status === "stale" ? `<em>${t.stale}</em>` : "";
         const rotation = targetIconRotation(item);
-        const listImageUrl = lightTheme && item.image_light_url
+        const listImageUrl = (warning || lightTheme) && item.image_light_url
           ? item.image_light_url
           : item.image_url;
         return `
@@ -1853,6 +1877,12 @@ class AirThreatRadarCard extends HTMLElement {
     const statusSince = this._statusSince(data);
     const statusTime = formatStatusTime(statusSince, lang);
     const statusDuration = formatDuration(statusSince, lang);
+    const statusTitle = warning ? t.warning : data.alert_active ? t.alert : t.safe;
+    const durationLabel = warning
+      ? t.warningDuration
+      : data.alert_active
+      ? t.alertDuration
+      : t.safeDuration;
     const displayArea = data.place_name || data.area || data.oblast || "";
     const analytics = data.analytics || {};
     const totalTargets = Number(analytics.total || 0);
@@ -1895,37 +1925,55 @@ class AirThreatRadarCard extends HTMLElement {
     )
       ? `<button class="chip compass-enable" type="button"${this._compassState === "checking" ? " disabled" : ""}><ha-icon icon="mdi:compass"></ha-icon><span>${escapeHtml(compassLabel)}</span></button>`
       : "";
-    const cardBackground = themeStyle
+    const cardBackground = warning
+      ? "linear-gradient(135deg, #ffe27a 0%, #ffd24a 52%, #f4b91f 100%)"
+      : themeStyle
       ? "var(--ha-card-background, var(--card-background-color, #111315))"
       : data.alert_active
       ? "linear-gradient(135deg, #3f0303 0%, #8b0000 50%, #c1121f 100%)"
       : "linear-gradient(135deg, #1f6f2b 0%, #358d32 55%, #43a047 100%)";
-    const cardColor = themeStyle
+    const cardColor = warning
+      ? "#17130a"
+      : themeStyle
       ? "var(--primary-text-color, #f5f5f5)"
       : "white";
-    const mutedColor = themeStyle
+    const mutedColor = warning
+      ? "rgba(23,19,10,.70)"
+      : themeStyle
       ? "var(--secondary-text-color, rgba(255,255,255,.68))"
       : "rgba(255,255,255,.68)";
-    const dividerColor = themeStyle
+    const dividerColor = warning
+      ? "rgba(23,19,10,.17)"
+      : themeStyle
       ? "var(--divider-color, rgba(127,127,127,.24))"
       : "rgba(255,255,255,.18)";
-    const panelBackground = themeStyle
+    const panelBackground = warning
+      ? "rgba(255,255,255,.18)"
+      : themeStyle
       ? "var(--secondary-background-color, rgba(127,127,127,.10))"
       : "rgba(0,0,0,.10)";
-    const chipBackground = themeStyle
+    const chipBackground = warning
+      ? "rgba(255,255,255,.38)"
+      : themeStyle
       ? lightTheme
         ? "var(--secondary-background-color, rgba(127,127,127,.14))"
         : "rgba(255,255,255,.075)"
       : "rgba(0,0,0,.22)";
-    const chipBorder = darkTheme
+    const chipBorder = warning
+      ? "rgba(23,19,10,.16)"
+      : darkTheme
       ? "rgba(255,255,255,.15)"
       : dividerColor;
-    const chipShadow = darkTheme
+    const chipShadow = warning
+      ? "inset 0 1px 0 rgba(255,255,255,.42), 0 2px 7px rgba(72,48,0,.12)"
+      : darkTheme
       ? "inset 0 1px 0 rgba(255,255,255,.08), 0 0 10px rgba(255,255,255,.035)"
       : themeStyle
       ? "none"
       : "inset 0 1px 0 rgba(255,255,255,.10), 0 2px 7px rgba(0,0,0,.18)";
-    const chipTextShadow = darkTheme
+    const chipTextShadow = warning
+      ? "none"
+      : darkTheme
       ? "0 1px 2px rgba(0,0,0,.58)"
       : themeStyle
       ? "none"
@@ -1939,9 +1987,12 @@ class AirThreatRadarCard extends HTMLElement {
     )
       ? customStatusImageUrl
       : data.status_image_url;
+    const statusImageClass = warning
+      ? "status-image warning-image"
+      : "status-image";
     const alertMarkerUrl = assetUrl("danger.png");
     const statusMarker = themeStyle && showRadar
-      ? `<img class="status-marker" src="${escapeHtml(alertMarkerUrl)}" alt="">`
+      ? `<img class="status-marker${warning ? " warning-image" : ""}" src="${escapeHtml(alertMarkerUrl)}" alt="">`
       : "";
     const cacheState = delayedData
       ? `<b class="cache-state delayed">${escapeHtml(t.dataDelayed)}</b>`
@@ -1956,24 +2007,25 @@ class AirThreatRadarCard extends HTMLElement {
         ha-card { position:relative; overflow:hidden; color:${cardColor}; background:${cardBackground}; border-radius:0px; border:${themeStyle ? `1px solid ${dividerColor}` : "0"}; }
         .demo-badge { position:absolute; z-index:5; top:8px; right:8px; padding:4px 7px; border-radius:5px; background:#ffd60a; color:#171717; font-size:9px; font-weight:950; box-shadow:0 2px 8px rgba(0,0,0,.3); }
         .top { min-height:132px; padding:14px 16px; display:grid; grid-template-columns:minmax(0,1fr) 126px; gap:10px; align-items:center; }
-        h2 { margin:0; font-size:28px; line-height:1; letter-spacing:0; color:${cardColor}; text-shadow:${themeStyle ? "none" : "0 2px 5px rgba(0,0,0,.28)"}; }
-        .area { margin-top:5px; min-width:0; max-width:100%; display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:2px; color:${mutedColor}; font-size:13px; font-weight:700; line-height:1; text-shadow:${themeStyle ? "none" : "0 1px 3px rgba(0,0,0,.25)"}; white-space:nowrap; }
+        h2 { margin:0; font-size:28px; line-height:1; letter-spacing:0; color:${cardColor}; text-shadow:${warning || themeStyle ? "none" : "0 2px 5px rgba(0,0,0,.28)"}; }
+        .area { margin-top:5px; min-width:0; max-width:100%; display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:2px; color:${mutedColor}; font-size:13px; font-weight:700; line-height:1; text-shadow:${warning || themeStyle ? "none" : "0 1px 3px rgba(0,0,0,.25)"}; white-space:nowrap; }
         .place { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .place-compact { display:none; }
-        .from { flex:none; min-height:12px; display:inline-flex; align-items:center; gap:3px; color:${cardColor}; font-weight:850; font-variant-numeric:tabular-nums; line-height:1; opacity:.96; text-shadow:${themeStyle ? "none" : "0 1px 4px rgba(0,0,0,.42)"}; white-space:nowrap; }
+        .from { flex:none; min-height:12px; display:inline-flex; align-items:center; gap:3px; color:${cardColor}; font-weight:850; font-variant-numeric:tabular-nums; line-height:1; opacity:.96; text-shadow:${warning || themeStyle ? "none" : "0 1px 4px rgba(0,0,0,.42)"}; white-space:nowrap; }
         .from.separated { margin-left:0; padding-left:0; border-left:0; }
         .clock-icon { flex:0 0 12px; width:12px; height:12px; display:grid; place-items:center; line-height:0; }
         .clock-icon ha-icon { display:block; width:12px; height:12px; --mdc-icon-size:12px; line-height:0; transform:translateY(-.5px); }
         .status-time { display:block; line-height:12px; }
         .chips { margin-top:7px; display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
         .chip { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-width:0; min-height:28px; max-width:100%; padding:0 10px; border-radius:999px; background:${chipBackground}; border:1px solid ${chipBorder}; color:${cardColor}; box-shadow:${chipShadow}; font-family:inherit; font-size:12px; font-weight:850; line-height:1; text-shadow:${chipTextShadow}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .chip.duration { flex:none; background:${themeStyle ? chipBackground : "rgba(255,255,255,.16)"}; border-color:${chipBorder}; }
+        .chip.duration { flex:none; background:${warning || themeStyle ? chipBackground : "rgba(255,255,255,.16)"}; border-color:${chipBorder}; }
         .compass-enable { gap:5px; cursor:pointer; }
         .compass-enable ha-icon { flex:none; width:15px; height:15px; --mdc-icon-size:15px; }
         .compass-enable span { overflow:hidden; text-overflow:ellipsis; }
         .visual { width:126px; height:126px; position:relative; display:grid; place-items:center; justify-self:end; }
         .status-image { max-width:126px; max-height:126px; object-fit:contain; }
         .status-marker { position:absolute; z-index:6; top:-2px; right:-2px; width:36px; height:36px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,.34)); }
+        .warning-image { filter:hue-rotate(42deg) saturate(.95) brightness(1.08) drop-shadow(0 2px 4px rgba(0,0,0,.34)); }
         .radar { width:112px; height:112px; position:relative; border-radius:50%; background:rgba(4,10,14,.48); border:1px solid rgba(255,255,255,.35); overflow:visible; }
         .ring { position:absolute; border:1px solid rgba(255,255,255,.27); border-radius:50%; inset:16.66%; }
         .ring.r2 { inset:33.33%; } .ring.r3 { inset:46%; }
@@ -1994,7 +2046,7 @@ class AirThreatRadarCard extends HTMLElement {
         .target i { position:absolute; right:-5px; bottom:-5px; width:9px; height:9px; display:grid; place-items:center; border-radius:50%; background:#17191c; color:white; font:700 7px/1 sans-serif; }
         .list { border-top:1px solid ${dividerColor}; background:${panelBackground}; }
         .row { min-height:38px; padding:0 14px; display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:8px; align-items:center; border-bottom:1px solid ${dividerColor}; font-size:12px; }
-        .row img { width:24px; height:24px; object-fit:contain; transform-origin:center; filter:${lightTheme ? "none" : themeStyle ? "drop-shadow(0 0 2px rgba(0,0,0,.88))" : "drop-shadow(0 0 3px rgba(255,255,255,.36))"}; }
+        .row img { width:24px; height:24px; object-fit:contain; transform-origin:center; filter:${warning || lightTheme ? "none" : themeStyle ? "drop-shadow(0 0 2px rgba(0,0,0,.88))" : "drop-shadow(0 0 3px rgba(255,255,255,.36))"}; }
         .target-copy { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .target-copy span { color:${mutedColor}; }
         .target-copy em { margin-left:6px; padding:2px 4px; border-radius:3px; background:rgba(127,127,127,.20); font-size:8px; font-style:normal; opacity:.82; }
@@ -2011,6 +2063,7 @@ class AirThreatRadarCard extends HTMLElement {
         .metric-kab b { color:#ffd166; }
         .metric-aircraft b { color:#ffb86b; }
         .metric-unknown b { color:#c8cdd3; }
+        ${warning ? ".analytics b { color:#17130a; }" : ""}
         .credit { font-size:8px; opacity:.58; white-space:nowrap; }
         .cache-state { margin-right:5px; color:#ffd166; font-size:8px; font-weight:800; opacity:1; }
         .cache-state.delayed { text-transform:uppercase; }
@@ -2046,9 +2099,9 @@ class AirThreatRadarCard extends HTMLElement {
       <ha-card>
         ${data.demo ? `<div class="demo-badge">${t.demo}</div>` : ""}
         <div class="top">
-          <div class="status-copy more-info-zone" role="button" tabindex="0"><h2>${data.alert_active ? t.alert : t.safe}</h2><div class="area">${displayArea ? `<span class="place place-full" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span><span class="place place-compact" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span>` : ""}${statusTime ? `<span class="from${displayArea ? " separated" : ""}"><span class="clock-icon"><ha-icon icon="mdi:clock-outline"></ha-icon></span><span class="status-time">${statusTime}</span></span>` : ""}</div>
-          <div class="chips">${statusDuration ? `<div class="chip duration">${data.alert_active ? t.alertDuration : t.safeDuration} ${statusDuration}</div>` : ""}${nearest ? `<div class="chip nearest-chip more-info-zone" role="button" tabindex="0">${escapeHtml(targetDisplayTitle(nearest, t))} ≈${Math.round(nearest.distance_km)} ${t.distanceUnit}${nearest.status === "stale" ? ` · ${t.stale}` : ""}</div>` : ""}${compassControl}</div></div>
-          <div class="visual more-info-zone" role="button" tabindex="0">${showRadar ? this._renderRadar(nearby, maxDistance, t) : `<img class="status-image" src="${escapeHtml(statusImageUrl)}" alt="">`}${statusMarker}</div>
+          <div class="status-copy more-info-zone" role="button" tabindex="0"><h2>${statusTitle}</h2><div class="area">${displayArea ? `<span class="place place-full" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span><span class="place place-compact" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span>` : ""}${statusTime ? `<span class="from${displayArea ? " separated" : ""}"><span class="clock-icon"><ha-icon icon="mdi:clock-outline"></ha-icon></span><span class="status-time">${statusTime}</span></span>` : ""}</div>
+          <div class="chips">${statusDuration ? `<div class="chip duration">${durationLabel} ${statusDuration}</div>` : ""}${nearest ? `<div class="chip nearest-chip more-info-zone" role="button" tabindex="0">${escapeHtml(targetDisplayTitle(nearest, t))} ≈${Math.round(nearest.distance_km)} ${t.distanceUnit}${nearest.status === "stale" ? ` · ${t.stale}` : ""}</div>` : ""}${compassControl}</div></div>
+          <div class="visual more-info-zone" role="button" tabindex="0">${showRadar ? this._renderRadar(nearby, maxDistance, t) : `<img class="${statusImageClass}" src="${escapeHtml(statusImageUrl)}" alt="">`}${statusMarker}</div>
         </div>
         ${this._config.show_target_list !== false && rows ? `<div class="list more-info-zone" role="button" tabindex="0">${rows}</div>` : ""}
         <div class="footer"><div class="${analyticsClass} more-info-zone" role="button" tabindex="0">${metrics}</div><span class="credit">${cacheState}<span>${t.informational} · </span><a class="source" href="https://neptun.in.ua/" target="_blank" rel="noreferrer">NEPTUN</a></span></div>

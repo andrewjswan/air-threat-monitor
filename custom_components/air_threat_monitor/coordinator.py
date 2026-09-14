@@ -87,6 +87,11 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                 self._status_state = AlertStatusState(
                     active=stored["active"],
                     since=stored_since,
+                    level=(
+                        str(stored["level"])
+                        if stored.get("level") in ("red", "yellow")
+                        else None
+                    ),
                 )
             stored_areas = stored.get("areas")
             if isinstance(stored_areas, dict):
@@ -113,6 +118,11 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                     self._area_status_states[area_id] = AlertStatusState(
                         active=raw_area["active"],
                         since=area_since,
+                        level=(
+                            str(raw_area["level"])
+                            if raw_area.get("level") in ("red", "yellow")
+                            else None
+                        ),
                     )
                     self._area_status_keys[area_id] = (
                         normalized_raion_key,
@@ -167,6 +177,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             active=local_alert is not None,
             provider_since=local_alert.since if local_alert else None,
             now=now,
+            alert_level=local_alert.level.value if local_alert else None,
         )
         area_status_changed = False
         for area_id, (raion_key, oblast_key) in self._area_status_keys.items():
@@ -181,6 +192,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                 active=area_alert is not None,
                 provider_since=area_alert.since if area_alert else None,
                 now=now,
+                alert_level=area_alert.level.value if area_alert else None,
             )
             self._area_status_states[area_id] = area_status
             area_status_changed = area_status_changed or area_changed
@@ -263,6 +275,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             active=alert is not None,
             provider_since=alert.since if alert else None,
             now=datetime.now(UTC),
+            alert_level=alert.level.value if alert else None,
         )
         self._area_status_states[area_id] = state
         if is_new_area or changed:
@@ -309,6 +322,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                 if self._status_state
                 else None
             ),
+            "level": self._status_state.level if self._status_state else None,
             "areas": {},
         }
         areas: dict[str, Any] = payload["areas"]
@@ -322,6 +336,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                 "oblast_key": oblast_key,
                 "active": state.active,
                 "since": state.since.isoformat(),
+                "level": state.level,
             }
         return payload
 

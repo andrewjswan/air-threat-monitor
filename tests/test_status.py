@@ -61,3 +61,27 @@ def test_state_change_starts_a_new_period() -> None:
 
 def test_invalid_stored_timestamp_is_rejected() -> None:
     assert parse_datetime("not-a-date") is None
+
+
+def test_alert_level_change_starts_a_new_period() -> None:
+    previous = AlertStatusState(
+        active=True,
+        since=datetime(2026, 9, 11, 10, 0, tzinfo=UTC),
+        level="yellow",
+    )
+    now = datetime(2026, 9, 11, 10, 15, tzinfo=UTC)
+
+    state, changed = update_alert_status(
+        previous,
+        active=True,
+        provider_since="2026-09-11T10:14:00Z",
+        now=now,
+        alert_level="red",
+    )
+
+    assert changed is True
+    assert state == AlertStatusState(
+        active=True,
+        since=datetime(2026, 9, 11, 10, 14, tzinfo=UTC),
+        level="red",
+    )

@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from .models import ActiveAlert, AlertScope, ResolvedArea
+from .models import ActiveAlert, AlertLevel, AlertScope, ResolvedArea
+
+_ALERT_LEVEL_PRIORITY = {
+    AlertLevel.YELLOW: 1,
+    AlertLevel.RED: 2,
+}
 
 
 def normalize_alerts(payload: dict[str, Any]) -> tuple[ActiveAlert, ...]:
@@ -25,6 +30,23 @@ def normalize_alerts(payload: dict[str, Any]) -> tuple[ActiveAlert, ...]:
             area_key = str(row.get("key") or "").strip()
             if not area_key:
                 continue
+            raw_level = str(row.get("level") or "").strip().casefold()
+            try:
+                level = AlertLevel(raw_level)
+            except ValueError:
+                # Alerts from older provider responses did not include a level.
+                # Treat an active entry conservatively as a red alert.
+                level = AlertLevel.RED
+            raw_reasons = row.get("reasons")
+            reasons = (
+                tuple(
+                    reason
+                    for value in raw_reasons
+                    if isinstance(value, str) and (reason := value.strip())
+                )
+                if isinstance(raw_reasons, list)
+                else ()
+            )
             alerts.append(
                 ActiveAlert(
                     area_key=area_key,
@@ -32,6 +54,8 @@ def normalize_alerts(payload: dict[str, Any]) -> tuple[ActiveAlert, ...]:
                     oblast=str(row.get("oblast") or "").strip(),
                     since=str(row.get("since") or "").strip(),
                     scope=scope,
+                    level=level,
+                    reasons=reasons,
                 )
             )
     return tuple(alerts)
@@ -43,18 +67,34 @@ def find_local_alert(
     raion_key: str | None,
     oblast_key: str | None,
 ) -> ActiveAlert | None:
-    """Return the most specific active alert affecting the home point."""
+    """Return the highest-severity match, preferring specificity on ties."""
 
-    alert_list = tuple(alerts)
-    if raion_key:
-        for alert in alert_list:
-            if alert.scope is AlertScope.RAION and alert.area_key == raion_key:
-                return alert
-    if oblast_key:
-        for alert in alert_list:
-            if alert.scope is AlertScope.OBLAST and alert.area_key == oblast_key:
-                return alert
-    return None
+    matches = [
+        alert
+        for alert in alerts
+        if (
+            raion_key
+            and alert.scope is AlertScope.RAION
+            and alert.area_key == raion_key
+        )
+        or (
+            oblast_key
+            and alert.scope is AlertScope.OBLAST
+            and alert.area_key == oblast_key
+        )
+    ]
+    if not matches:
+        return None
+
+    # Never let a narrower yellow warning hide a wider red alert. Within the
+    # same severity, the district remains more specific than the oblast.
+    return max(
+        matches,
+        key=lambda alert: (
+            _ALERT_LEVEL_PRIORITY[alert.level],
+            alert.scope is AlertScope.RAION,
+        ),
+    )
 
 
 def resolved_area_from_feature(

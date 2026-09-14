@@ -27,6 +27,13 @@ class AlertScope(StrEnum):
     OBLAST = "oblast"
 
 
+class AlertLevel(StrEnum):
+    """Severity level for an active air alert."""
+
+    YELLOW = "yellow"
+    RED = "red"
+
+
 @dataclass(frozen=True, slots=True)
 class GeoPoint:
     """A latitude and longitude pair."""
@@ -77,6 +84,8 @@ class ActiveAlert:
     oblast: str
     since: str
     scope: AlertScope
+    level: AlertLevel = AlertLevel.RED
+    reasons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

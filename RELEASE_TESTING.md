@@ -26,6 +26,8 @@ Thank you for testing Air Threat Monitor.
 - [ ] On Ubuntu/Linux x86, the editor offers only configured fixed locations
       and does not offer GPS, a person/tracker, or compass orientation.
 - [ ] **Demo: safe** shows the safe image and a visible `DEMO` label.
+- [ ] **Demo: yellow level** shows an amber signal card, the
+      `ЖОВТИЙ РІВЕНЬ` heading, and amber warning artwork.
 - [ ] **Demo: alert** shows sample targets on a north-up radar.
 - [ ] The radar sweep completes full turns without jumping back during refresh.
 - [ ] **Automatic (recommended)** shows up to five targets inside the selected
@@ -51,8 +53,9 @@ Thank you for testing Air Threat Monitor.
       the location, stays vertically centered in Safari and Chromium, and
       does not wrap or merge with the location.
 - [ ] Existing duration and nearest-target badges are visually unchanged.
-- [ ] Alert/safe start time and duration are visible and continue correctly
-      after a Home Assistant restart.
+- [ ] Safe, yellow-level, and red-alert start times and durations are visible
+      and continue correctly after a Home Assistant restart.
+- [ ] A yellow-to-red or red-to-yellow transition starts a new level duration.
 - [ ] The footer shows total and grouped target counts.
 - [ ] When the active-target total is zero, the footer says
       `Активних цілей немає` instead of `0 цілей`.
@@ -151,7 +154,7 @@ Thank you for testing Air Threat Monitor.
       the north-referenced calculations.
 - [ ] With no displayed targets, the card does not reserve empty list space.
 - [ ] Card corners and content remain aligned on narrow dashboard columns.
-- [ ] **Signal colors** keeps the original red/green gradients.
+- [ ] **Signal colors** uses distinct green, amber, and red gradients.
 - [ ] **Follow Home Assistant theme** follows light/dark theme colors and keeps
       the bundled safe/alert image as the status marker.
 - [ ] The graphical editor uses the bundled standard shield artwork and offers
@@ -179,6 +182,8 @@ Thank you for testing Air Threat Monitor.
 ## Live data
 
 - [ ] Local alert state agrees with official warning channels.
+- [ ] The local `alert_level` and `alert_reasons` attributes agree with the
+      current NEPTUN response.
 - [ ] Target distances and compass positions are plausible.
 - [ ] Targets with unknown heading are not labelled as approaching.
 - [ ] Data returns after a temporary network interruption.
