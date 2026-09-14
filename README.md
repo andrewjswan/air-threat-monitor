@@ -16,7 +16,8 @@ direction, and a north-up radar card.
 - Setup entirely through the Home Assistant interface.
 - Home Assistant coordinates are prefilled and can be changed before saving.
 - Coordinates are processed locally and are not sent to the data provider.
-- Local district/oblast air-alert matching.
+- Local district/oblast air-alert matching with separate yellow warning and
+  red alert levels from NEPTUN.
 - Distance, bearing, heading, approach state, and target-category calculations.
 - Standard north-up radar: north is at the top, east on the right, south at the
   bottom, and west on the left.
@@ -27,9 +28,9 @@ direction, and a north-up radar card.
 - Optional device-compass orientation while the card is open on a compatible
   phone.
 - Bundled images for safe/alert states and supported target categories.
-- Persisted start time and live duration for both alert and safe periods.
+- Persisted start time and live duration for safe, yellow, and red periods.
 - Compact total and per-category target analytics in the radar card.
-- Two visual styles: the default red/green signal design and an optional
+- Two visual styles: the default green/yellow/red signal design and an optional
   light/dark style that follows the current Home Assistant theme.
 - Automatic white/dark target artwork selection for readable target rows in
   both dark and light Home Assistant themes.
@@ -104,7 +105,7 @@ dashboard resource needs to be registered manually.
    Companion App permission. The control remains in a waiting state until the
    first real heading arrives and becomes actionable again if the device sends
    no compass data.
-7. Choose **Signal colors** for the original red/green card or **Follow Home
+7. Choose **Signal colors** for the green/yellow/red card or **Follow Home
    Assistant theme** for a neutral light/dark card.
 8. Choose the radar radius, number of target rows, and whether the target list
    is visible. The radius affects radar marks only; the list can also show
@@ -202,6 +203,8 @@ remains available on all devices.
 In the card editor, change **Card data** to one of these modes:
 
 - **Demo: safe** displays the bundled safe state.
+- **Demo: yellow level** displays the warning state without waiting for a live
+  yellow alert in the selected area.
 - **Demo: alert** displays sample targets and radar movement.
 - **Live data** returns to the integration snapshot.
 
